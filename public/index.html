@@ -68,7 +68,7 @@
       <div class="mb-4">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
           <h3 class="font-extrabold text-2xl flex items-center gap-2 text-gray-800">🎯 동아리 목록</h3>
-          <span class="text-sm font-bold text-rose-600 bg-rose-50 px-4 py-2 rounded-xl border border-rose-100">※ 정규 1개, 자율 2개 신청 가능</span>
+          <span class="text-sm font-bold text-rose-600 bg-rose-50 px-4 py-2 rounded-xl border border-rose-100">※ 정규 1개, 자율 2개 (카드를 클릭하면 상세 안내 확인 가능)</span>
         </div>
         <div class="mb-6 relative">
           <input type="text" id="search-club" placeholder="동아리명 또는 담당 선생님 검색..." class="w-full pl-6 pr-4 py-4 bg-white border border-gray-200 shadow-sm rounded-2xl focus:ring-2 focus:ring-indigo-400 outline-none transition-all font-medium">
@@ -85,11 +85,45 @@
       
       <div id="admin-section-manage">
         <div class="mb-6 bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4 items-center">
-          <label class="font-extrabold text-gray-800 text-lg whitespace-nowrap">관리할 동아리 선택</label>
+          <label class="font-extrabold text-gray-800 text-lg whitespace-nowrap">내 동아리 선택</label>
           <select id="admin-club-select" class="border border-gray-200 p-3.5 rounded-xl w-full text-lg bg-gray-50 outline-none focus:ring-2 focus:ring-indigo-400 transition-all font-medium"></select>
         </div>
+
+        <div id="admin-club-edit-section" class="hidden mb-6 bg-white p-6 md:p-8 rounded-[1.5rem] shadow-sm border border-indigo-100 relative">
+          <h4 class="font-extrabold text-xl text-gray-800 mb-2 flex items-center gap-2">📢 동아리 소개 및 요강 관리</h4>
+          <p class="text-sm text-gray-500 mb-6 font-medium">이곳에 작성한 소개글과 PPT를 학생들이 동아리 클릭 시 확인하게 됩니다.</p>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6 text-sm">
+            <div>
+              <label class="block mb-2 font-bold text-gray-600">모집 및 선발 방법</label>
+              <select id="edit-club-method" class="w-full border p-3.5 rounded-xl bg-gray-50 outline-none focus:bg-white focus:ring-2 focus:ring-indigo-400">
+                <option value="선착순 자동 합격">선착순 자동 합격</option>
+                <option value="담당 교사 면접 선발">담당 교사 면접 선발</option>
+                <option value="구글 폼 추가 제출">구글 폼 추가 제출</option>
+                <option value="오프라인 종이 지원서">오프라인 종이 지원서</option>
+              </select>
+            </div>
+            <div class="flex gap-4">
+              <div class="flex-1"><label class="block mb-2 font-bold text-gray-600">최소 인원 (명)</label><input type="number" id="edit-club-min" class="w-full border p-3.5 rounded-xl bg-gray-50 outline-none focus:bg-white focus:ring-2 focus:ring-indigo-400"></div>
+              <div class="flex-1"><label class="block mb-2 font-bold text-gray-600">최대 정원 (명)</label><input type="number" id="edit-club-max" class="w-full border p-3.5 rounded-xl bg-gray-50 outline-none focus:bg-white focus:ring-2 focus:ring-indigo-400"></div>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block mb-2 font-bold text-gray-600">학생들에게 보여줄 상세 소개글</label>
+              <textarea id="edit-club-description" rows="4" placeholder="동아리 활동 내용, 목표, 선발 기준 등을 상세히 적어주세요." class="w-full border p-4 rounded-xl bg-gray-50 outline-none focus:bg-white focus:ring-2 focus:ring-indigo-400 resize-none"></textarea>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block mb-2 font-bold text-indigo-600">✨ 홍보 PPT / 안내 자료 업로드</label>
+              <div class="flex items-center gap-3">
+                <input type="file" id="edit-club-ppt" accept=".pdf,.ppt,.pptx,.zip" class="flex-1 border p-3 rounded-xl bg-indigo-50/30 text-sm cursor-pointer">
+                <span id="current-ppt-name" class="text-xs font-bold text-gray-400 truncate max-w-[150px] bg-gray-100 px-3 py-2 rounded-lg">현재 등록된 파일 없음</span>
+              </div>
+            </div>
+          </div>
+          <button id="btn-save-club-info" class="bg-indigo-600 text-white px-6 py-3.5 rounded-xl font-bold shadow-md hover:bg-indigo-700 hover:-translate-y-0.5 transition-all w-full md:w-auto">내용 업데이트 및 저장하기</button>
+        </div>
+        
         <div class="flex flex-col sm:flex-row justify-between items-center mb-4 bg-gray-50 p-5 rounded-2xl border border-gray-100 gap-4">
-          <span class="font-extrabold text-lg text-gray-800">📋 신청자 목록</span>
+          <span class="font-extrabold text-lg text-gray-800">📋 지원자 선발 명단</span>
           <div class="flex items-center gap-3">
             <span class="text-sm font-bold text-indigo-700 bg-white px-4 py-2 rounded-xl shadow-sm border border-indigo-100">합격: <span id="accepted-count">0</span> / <span id="max-count">0</span>명</span>
             <button id="btn-excel" class="bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md hover:bg-emerald-600 transition-all">📊 명단 다운로드</button>
@@ -113,20 +147,17 @@
       </div>
 
       <div id="admin-section-create" class="hidden bg-white p-8 md:p-10 rounded-[2rem] shadow-sm border border-gray-100">
-        <h3 class="font-extrabold text-2xl mb-2 text-gray-800">📝 동아리 개설 신청</h3>
-        <p class="text-gray-500 font-medium mb-8 text-sm">소개글과 홍보 자료를 등록하여 학생들에게 보여줄 수 있습니다.</p>
+        <h3 class="font-extrabold text-2xl mb-2 text-gray-800">📝 새 동아리 개설 신청</h3>
+        <p class="text-gray-500 font-medium mb-8 text-sm">기본 정보를 적고 운영계획서를 제출해 주세요. (소개글과 모집 방법은 정식 개설 후 '내 동아리 관리'에서 자유롭게 작성 가능합니다.)</p>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 text-sm">
-          <div class="md:col-span-2"><label class="block mb-2 font-bold text-gray-600">동아리명</label><input type="text" id="create-club-name" placeholder="동아리 이름을 입력하세요" class="w-full border p-4 rounded-xl bg-gray-50 outline-none focus:bg-white focus:ring-2 focus:ring-indigo-400"></div>
+          <div><label class="block mb-2 font-bold text-gray-600">동아리명</label><input type="text" id="create-club-name" placeholder="동아리 이름을 입력하세요" class="w-full border p-4 rounded-xl bg-gray-50 outline-none focus:bg-white focus:ring-2 focus:ring-indigo-400"></div>
           <div><label class="block mb-2 font-bold text-gray-600">구분</label><select id="create-club-category" class="w-full border p-4 rounded-xl bg-gray-50"><option value="일반">정규 동아리 (일반)</option><option value="방과 후 자율">방과 후 자율 동아리</option></select></div>
-          <div><label class="block mb-2 font-bold text-gray-600">모집 방법</label><select id="create-club-method" class="w-full border p-4 rounded-xl bg-gray-50"><option value="선착순 자동 합격">선착순 자동 합격</option><option value="담당 교사 면접 선발">담당 교사 면접 선발</option><option value="구글 폼 추가 제출">구글 폼 추가 제출</option><option value="오프라인 종이 지원서">오프라인 종이 지원서</option></select></div>
-          <div><label class="block mb-2 font-bold text-gray-600">최소 인원</label><input type="number" id="create-club-min" value="5" class="w-full border p-4 rounded-xl bg-gray-50"></div>
-          <div><label class="block mb-2 font-bold text-gray-600">최대 정원</label><input type="number" id="create-club-max" value="18" class="w-full border p-4 rounded-xl bg-gray-50"></div>
-          <div class="md:col-span-2"><label class="block mb-2 font-bold text-gray-600">동아리 상세 소개글</label><textarea id="create-club-description" rows="5" placeholder="활동 내용 및 소개글을 자유롭게 작성해 주세요." class="w-full border p-4 rounded-xl bg-gray-50 outline-none focus:bg-white focus:ring-2 focus:ring-indigo-400 resize-none"></textarea></div>
-          <div><label class="block mb-2 font-bold text-gray-600 text-indigo-600">✨ 홍보 PPT / 자료 (학생 노출용)</label><input type="file" id="create-club-ppt" accept=".pdf,.ppt,.pptx,.zip" class="w-full border p-3.5 rounded-xl bg-indigo-50/30"></div>
-          <div><label class="block mb-2 font-bold text-gray-600 text-rose-600">📂 운영 계획서 (관리자 승인용)</label><input type="file" id="create-club-file" accept=".pdf,.hwp,.docx" class="w-full border p-3.5 rounded-xl bg-rose-50/30"></div>
+          <div><label class="block mb-2 font-bold text-gray-600">기본 정원 (추후 수정 가능)</label><input type="number" id="create-club-max" value="18" class="w-full border p-4 rounded-xl bg-gray-50"></div>
+          <div><label class="block mb-2 font-bold text-gray-600">담당 교사 이름</label><input type="text" id="create-club-teacher" placeholder="선생님 성함" class="w-full border p-4 rounded-xl bg-gray-50 outline-none focus:bg-white focus:ring-2 focus:ring-indigo-400"></div>
+          <div class="md:col-span-2"><label class="block mb-2 font-bold text-gray-600 text-rose-600">📂 동아리 운영 계획서 첨부 (관리자 확인용 필수)</label><input type="file" id="create-club-file" accept=".pdf,.hwp,.docx" class="w-full border p-3.5 rounded-xl bg-rose-50/30 cursor-pointer"></div>
         </div>
-        <button id="btn-create-club" class="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-5 rounded-2xl font-extrabold text-lg shadow-lg hover:-translate-y-1 transition-all">동아리 개설 신청 완료</button>
+        <button id="btn-create-club" class="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-5 rounded-2xl font-extrabold text-lg shadow-lg hover:-translate-y-1 transition-all">관리자에게 승인 요청하기</button>
       </div>
 
       <div id="admin-section-approve" class="hidden">
@@ -149,15 +180,15 @@
         
         <div class="grid grid-cols-2 gap-4 bg-gray-50 p-5 rounded-2xl border border-gray-100 mb-8">
           <div><span class="text-gray-400 text-xs font-bold block mb-1">정원 안내</span><span id="modal-members" class="font-extrabold">최소 0명 / 최대 0명</span></div>
-          <div id="modal-ppt-area" class="hidden"><span class="text-gray-400 text-xs font-bold block mb-1">동아리 자료</span><a id="modal-ppt-link" href="#" target="_blank" class="text-blue-600 font-extrabold underline underline-offset-4">📥 자료 다운로드</a></div>
+          <div id="modal-ppt-area" class="hidden"><span class="text-gray-400 text-xs font-bold block mb-1">동아리 홍보 자료</span><a id="modal-ppt-link" href="#" target="_blank" class="text-blue-600 font-extrabold underline underline-offset-4">📥 파일 열기/다운로드</a></div>
         </div>
 
         <div class="mb-10">
-          <h4 class="font-extrabold text-gray-800 mb-3 flex items-center gap-2">💬 동아리 소개</h4>
+          <h4 class="font-extrabold text-gray-800 mb-3 flex items-center gap-2">💬 동아리 소개 및 운영 방안</h4>
           <div id="modal-description" class="text-gray-600 leading-relaxed whitespace-pre-wrap bg-white p-6 rounded-2xl border border-gray-100 shadow-sm min-h-[150px]"></div>
         </div>
 
-        <button id="btn-modal-apply" class="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg hover:shadow-indigo-200 hover:-translate-y-1 transition-all">이 동아리에 신청하기</button>
+        <button id="btn-modal-apply" class="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg hover:shadow-indigo-200 hover:-translate-y-1 transition-all">이 동아리에 지원하기</button>
       </div>
     </div>
   </div>

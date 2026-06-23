@@ -402,32 +402,60 @@ document.getElementById('filter-class').onchange = renderAllStudentsTable;
 document.getElementById('filter-name').oninput = renderAllStudentsTable;
 
 function renderStudentStatus() {
-  const box = document.getElementById('my-status-box'); box.innerHTML = "";
+  const box = document.getElementById('my-status-box'); 
+  box.innerHTML = "";
   if (!state.currentStudent) return;
+
   Object.entries(state.appsData).forEach(([cid, apps]) => {
     const my = apps[state.currentStudent.id];
     if (!my) return;
+    
     const club = state.clubsData[cid];
     const div = document.createElement('div');
     div.className = "flex flex-col sm:flex-row justify-between items-center p-4 bg-white rounded-2xl shadow-sm border border-l-8 border-indigo-500 mb-2 gap-3";
     
-    // 완벽하게 복구된 학생의 '지원 취소' 버튼
-    div.innerHTML = `<div class="flex items-center gap-3"><span class="font-extrabold text-lg">${club?.clubName || '동아리'}</span><span class="text-sm px-3 py-1 rounded-lg bg-indigo-50 text-indigo-600 font-bold border">${my.status}</span></div>
-      ${(my.status==='합격'||my.status==='탈락')?'<span class="text-xs text-gray-400 font-bold bg-gray-100 px-3 py-2 rounded-lg">확정 완료</span>':`<button onclick="cancelApplication('${cid}')" class="text-sm text-rose-500 hover:bg-rose-50 border border-rose-200 px-4 py-2 rounded-xl font-bold">지원 취소</button>`}`;
+    // 1. 동아리 이름 및 상태 정보
+    const infoDiv = document.createElement('div');
+    infoDiv.className = "flex items-center gap-3";
+    infoDiv.innerHTML = `<span class="font-extrabold text-lg">${club?.clubName || '동아리'}</span><span class="text-sm px-3 py-1 rounded-lg bg-indigo-50 text-indigo-600 font-bold border">${my.status}</span>`;
+    div.appendChild(infoDiv);
+
+    // 2. 상태에 따른 버튼 생성 (이벤트 리스너 직접 연결로 오류 원천 차단!)
+    if (my.status === '합격' || my.status === '탈락') {
+      const span = document.createElement('span');
+      span.className = "text-xs text-gray-400 font-bold bg-gray-100 px-3 py-2 rounded-lg";
+      span.textContent = "확정 완료";
+      div.appendChild(span);
+    } else {
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = "text-sm text-rose-500 hover:bg-rose-50 border border-rose-200 px-4 py-2 rounded-xl font-bold transition-all";
+      cancelBtn.textContent = "지원 취소";
+      
+      // 강력한 이벤트 리스너 바인딩
+      cancelBtn.addEventListener('click', async () => {
+        const res = await Swal.fire({ 
+          title: '지원을 취소할까요?', 
+          icon: 'warning', 
+          showCancelButton: true, 
+          confirmButtonColor: '#e11d48', 
+          confirmButtonText: '취소하기', 
+          cancelButtonText: '닫기' 
+        });
+        if(res.isConfirmed) {
+          await remove(ref(db, `applications/${cid}/${state.currentStudent.id}`)); 
+          Toast.fire("지원 취소 완료", "", "info");
+        }
+      });
+      div.appendChild(cancelBtn);
+    }
+    
     box.appendChild(div);
   });
-  if(box.innerHTML === "") box.innerHTML = `<div class="p-8 text-center text-gray-400 font-medium bg-gray-50 rounded-2xl border border-dashed">지원 내역이 없습니다.</div>`;
-}
 
-// 글로벌 지원 취소 로직 (버그 완벽 수정)
-window.cancelApplication = async (clubId) => {
-  const res = await Swal.fire({ title: '지원을 취소할까요?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#e11d48', confirmButtonText: '취소하기', cancelButtonText: '닫기' });
-  if(res.isConfirmed) {
-    await remove(ref(db, `applications/${clubId}/${state.currentStudent.id}`)); 
-    Toast.fire("지원 취소 완료", "", "info");
+  if(box.innerHTML === "") {
+    box.innerHTML = `<div class="p-8 text-center text-gray-400 font-medium bg-gray-50 rounded-2xl border border-dashed">지원 내역이 없습니다.</div>`;
   }
-};
-
+}
 function renderAllStudentsTable() {
   const tbody = document.getElementById('all-students-tbody'); tbody.innerHTML = "";
   const [fGrade, fClass, fName] = [document.getElementById('filter-grade').value, document.getElementById('filter-class').value, document.getElementById('filter-name').value.trim().toLowerCase()];

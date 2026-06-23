@@ -161,14 +161,24 @@ function initAdminData() {
 // ----------------------------------------------------
 // 교사: 동아리 개설 신청 (1단계)
 // ----------------------------------------------------
+// ----------------------------------------------------
+// 교사: 동아리 개설 신청 (1단계)
+// ----------------------------------------------------
 document.getElementById('btn-create-club').addEventListener('click', async () => {
-  const name = document.getElementById('create-club-name').value.trim();
-  const category = document.getElementById('create-club-category').value;
-  const max = parseInt(document.getElementById('create-club-max').value) || 18;
-  const teacher = document.getElementById('create-club-teacher').value.trim() || state.currentUser.displayName;
-  const planFile = document.getElementById('create-club-file').files[0];
+  const nameInput = document.getElementById('create-club-name').value.trim();
+  const categoryInput = document.getElementById('create-club-category').value;
+  const maxInput = parseInt(document.getElementById('create-club-max').value) || 18;
+  const teacherInput = document.getElementById('create-club-teacher').value.trim();
+  
+  // 구글 계정에 이름이 없으면 에러가 나지 않도록 안전하게 처리
+  const teacherName = teacherInput || (state.currentUser && state.currentUser.displayName ? state.currentUser.displayName : "담당 교사");
+  
+  const fileInput = document.getElementById('create-club-file');
+  const planFile = fileInput.files.length > 0 ? fileInput.files[0] : null;
 
-  if(!name || !planFile) return showAlert("입력 오류", "동아리명과 운영 계획서 파일은 필수입니다.", "warning");
+  if(!nameInput || !planFile) {
+    return showAlert("입력 오류", "동아리명과 운영 계획서 파일은 필수입니다.", "warning");
+  }
 
   Swal.fire({ title: '신청서 제출 중...', didOpen: () => Swal.showLoading() });
   try {
@@ -177,13 +187,27 @@ document.getElementById('btn-create-club').addEventListener('click', async () =>
     const planUrl = await getDownloadURL(planRef);
 
     await push(ref(db, 'club_applications'), {
-      name, category, max, teacher, email: state.currentUser.email, planUrl, status: '대기중', timestamp: Date.now()
+      name: nameInput, 
+      category: categoryInput, 
+      max: maxInput, 
+      teacher: teacherName, 
+      email: state.currentUser ? state.currentUser.email : "", 
+      planUrl: planUrl, 
+      status: '대기중', 
+      timestamp: Date.now()
     });
+    
     Swal.fire("신청 접수 완료", "관리자 승인 후 '내 동아리 관리'에서 소개글과 정보를 추가할 수 있습니다.", "success");
-    document.getElementById('create-club-name').value = ""; document.getElementById('create-club-file').value = "";
-  } catch (err) { showAlert("오류", err.message, "error"); }
+    
+    // 폼 초기화
+    document.getElementById('create-club-name').value = ""; 
+    document.getElementById('create-club-teacher').value = ""; 
+    document.getElementById('create-club-file').value = "";
+  } catch (err) { 
+    console.error("개설 신청 에러:", err);
+    showAlert("오류 발생", "신청 중 문제가 발생했습니다. 새로고침 후 다시 시도해주세요.", "error"); 
+  }
 });
-
 // 관리자: 개설 승인 로직
 function renderPendingClubs() {
   const list = document.getElementById('pending-club-list'); list.innerHTML = "";
@@ -394,8 +418,24 @@ document.getElementById('btn-modal-apply').onclick = async () => {
 // ----------------------------------------------------
 // 공통: 명단 테이블 및 학생 지원취소 로직 복구
 // ----------------------------------------------------
-document.getElementById('tab-student-regular').onclick = () => { state.currentStudentTab = 'regular'; renderClubs(); };
-document.getElementById('tab-student-afterschool').onclick = () => { state.currentStudentTab = 'afterschool'; renderClubs(); };
+const btnRegular = document.getElementById('tab-student-regular');
+const btnAfterschool = document.getElementById('tab-student-afterschool');
+
+btnRegular.onclick = () => {
+  state.currentStudentTab = 'regular';
+  // 정규 동아리 활성화 (흰색 배경)
+  btnRegular.className = "flex-1 py-3 text-center rounded-xl bg-white shadow text-indigo-600 font-extrabold transition-all";
+  btnAfterschool.className = "flex-1 py-3 text-center rounded-xl text-gray-500 font-medium hover:text-gray-700 transition-all";
+  renderClubs();
+};
+
+btnAfterschool.onclick = () => {
+  state.currentStudentTab = 'afterschool';
+  // 방과 후 자율 활성화 (흰색 배경)
+  btnAfterschool.className = "flex-1 py-3 text-center rounded-xl bg-white shadow text-indigo-600 font-extrabold transition-all";
+  btnRegular.className = "flex-1 py-3 text-center rounded-xl text-gray-500 font-medium hover:text-gray-700 transition-all";
+  renderClubs();
+};
 document.getElementById('search-club').oninput = renderClubs;
 document.getElementById('filter-grade').onchange = renderAllStudentsTable;
 document.getElementById('filter-class').onchange = renderAllStudentsTable;

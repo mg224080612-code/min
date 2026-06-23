@@ -36,9 +36,19 @@ const state = {
 
 const SUPER_ADMINS = ['mg224080612@gvcs-mg.org', 'kyoungmin@gvcs-mg.org'];
 
-// 유틸
 const Toast = Swal.mixin({ toast: true, position: 'top', showConfirmButton: false, timer: 3000, timerProgressBar: true });
 const showAlert = (title, text, icon = 'info') => Swal.fire({ title, text, icon, confirmButtonColor: '#4F46E5', borderRadius: '1.5rem' });
+
+// ----------------------------------------------------
+// UI 이벤트 리스너 안전하게 바인딩 (에러 원천 차단)
+// ----------------------------------------------------
+const editPptInput = document.getElementById('edit-club-ppt');
+if (editPptInput) {
+  editPptInput.addEventListener('change', function() {
+    const nameDisplay = document.getElementById('current-ppt-name');
+    if (nameDisplay) nameDisplay.textContent = this.files[0] ? `[새 파일 첨부됨] ${this.files[0].name}` : '현재 등록된 파일 없음';
+  });
+}
 
 // ----------------------------------------------------
 // 로그인 및 상태 감지
@@ -149,7 +159,7 @@ function initAdminData() {
 }
 
 // ----------------------------------------------------
-// 교사: 동아리 1단계 '개설 신청' (가볍게)
+// 교사: 동아리 개설 신청 (1단계)
 // ----------------------------------------------------
 document.getElementById('btn-create-club').addEventListener('click', async () => {
   const name = document.getElementById('create-club-name').value.trim();
@@ -174,18 +184,19 @@ document.getElementById('btn-create-club').addEventListener('click', async () =>
   } catch (err) { showAlert("오류", err.message, "error"); }
 });
 
-// 관리자 승인 로직
+// 관리자: 개설 승인 로직
 function renderPendingClubs() {
   const list = document.getElementById('pending-club-list'); list.innerHTML = "";
   Object.entries(state.pendingClubsData).forEach(([id, data]) => {
     const li = document.createElement('li');
-    li.className = "p-6 bg-white rounded-2xl shadow-sm border border-gray-200 flex justify-between gap-4";
+    li.className = "p-6 bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col md:flex-row justify-between gap-4";
     li.innerHTML = `
       <div><h4 class="text-xl font-black">${data.name}</h4><p class="text-sm text-gray-500">교사: ${data.teacher} / 정원: ${data.max}명</p><a href="${data.planUrl}" target="_blank" class="text-xs font-bold text-indigo-600 underline mt-2 block">📂 운영계획서 확인</a></div>
       <div class="flex items-center gap-2"><button onclick="approveClub('${id}')" class="bg-indigo-600 text-white px-4 py-2 rounded-xl">승인</button><button onclick="rejectClub('${id}')" class="bg-rose-100 text-rose-600 px-4 py-2 rounded-xl">반려</button></div>`;
     list.appendChild(li);
   });
 }
+
 window.approveClub = async (id) => {
   const d = state.pendingClubsData[id];
   await set(push(ref(db, 'clubs')), { clubName: d.name, category: d.category, teacher: d.teacher, email: d.email, maxMembers: d.max });
@@ -196,12 +207,13 @@ window.rejectClub = async (id) => {
 };
 
 // ----------------------------------------------------
-// 교사: 2단계 개설된 동아리 정보 '업데이트/관리'
+// 교사 및 최고관리자: 동아리 세부정보 업데이트 및 명단
 // ----------------------------------------------------
 function renderAdminDropdown() {
   const sel = document.getElementById('admin-club-select'); const currentVal = sel.value;
   sel.innerHTML = '<option value="">▼ 관리할 동아리를 선택하세요</option>';
   Object.entries(state.clubsData).forEach(([id, c]) => {
+    // 최고관리자이거나 자기 동아리면 표시
     if (state.isSuperAdmin || c.email === state.currentUser.email) sel.innerHTML += `<option value="${id}">${c.clubName}</option>`;
   });
   if(state.clubsData[currentVal]) sel.value = currentVal;
@@ -225,8 +237,9 @@ function renderAdminList() {
   const clubInfo = state.clubsData[clubId];
   editSection.classList.remove('hidden');
   
-  // 편집 창 데이터 채워넣기
+  // 편집 창 정보 채우기 (최고관리자도 마음껏 수정 가능)
   document.getElementById('edit-club-method').value = clubInfo.recruitMethod || '선착순 자동 합격';
+  document.getElementById('edit-club-teacher').value = clubInfo.teacher || '';
   document.getElementById('edit-club-min').value = clubInfo.minMembers || 0;
   document.getElementById('edit-club-max').value = clubInfo.maxMembers || 18;
   document.getElementById('edit-club-description').value = clubInfo.description || '';
@@ -258,7 +271,7 @@ function renderAdminList() {
   });
 }
 
-// 💡 선생님의 동아리 정보 업데이트 저장 로직
+// 선생님 및 관리자의 동아리 정보 업데이트
 document.getElementById('btn-save-club-info').addEventListener('click', async () => {
   const clubId = document.getElementById('admin-club-select').value;
   if(!clubId) return;
@@ -267,7 +280,8 @@ document.getElementById('btn-save-club-info').addEventListener('click', async ()
     recruitMethod: document.getElementById('edit-club-method').value,
     minMembers: parseInt(document.getElementById('edit-club-min').value) || 0,
     maxMembers: parseInt(document.getElementById('edit-club-max').value) || 18,
-    description: document.getElementById('edit-club-description').value.trim()
+    description: document.getElementById('edit-club-description').value.trim(),
+    teacher: document.getElementById('edit-club-teacher').value.trim() // 최고관리자가 수정 가능!
   };
 
   const pptFile = document.getElementById('edit-club-ppt').files[0];
@@ -281,8 +295,9 @@ document.getElementById('btn-save-club-info').addEventListener('click', async ()
       updates.pptName = pptFile.name;
     }
     await update(ref(db, `clubs/${clubId}`), updates);
-    Toast.fire("업데이트 완료", "학생들에게 보이는 상세 정보가 수정되었습니다.", "success");
-    document.getElementById('current-ppt-name').textContent = updates.pptName ? `[등록됨] ${updates.pptName}` : document.getElementById('current-ppt-name').textContent;
+    Toast.fire("업데이트 완료", "학생 상세정보에 반영되었습니다.", "success");
+    
+    if (updates.pptName) document.getElementById('current-ppt-name').textContent = `[등록됨] ${updates.pptName}`;
     document.getElementById('edit-club-ppt').value = '';
   } catch(e) { showAlert("오류", e.message, "error"); }
 });
@@ -377,7 +392,7 @@ document.getElementById('btn-modal-apply').onclick = async () => {
 };
 
 // ----------------------------------------------------
-// 공통: 탭 전환 및 명단 테이블 렌더링
+// 공통: 명단 테이블 및 학생 지원취소 로직 복구
 // ----------------------------------------------------
 document.getElementById('tab-student-regular').onclick = () => { state.currentStudentTab = 'regular'; renderClubs(); };
 document.getElementById('tab-student-afterschool').onclick = () => { state.currentStudentTab = 'afterschool'; renderClubs(); };
@@ -395,6 +410,8 @@ function renderStudentStatus() {
     const club = state.clubsData[cid];
     const div = document.createElement('div');
     div.className = "flex flex-col sm:flex-row justify-between items-center p-4 bg-white rounded-2xl shadow-sm border border-l-8 border-indigo-500 mb-2 gap-3";
+    
+    // 완벽하게 복구된 학생의 '지원 취소' 버튼
     div.innerHTML = `<div class="flex items-center gap-3"><span class="font-extrabold text-lg">${club?.clubName || '동아리'}</span><span class="text-sm px-3 py-1 rounded-lg bg-indigo-50 text-indigo-600 font-bold border">${my.status}</span></div>
       ${(my.status==='합격'||my.status==='탈락')?'<span class="text-xs text-gray-400 font-bold bg-gray-100 px-3 py-2 rounded-lg">확정 완료</span>':`<button onclick="cancelApplication('${cid}')" class="text-sm text-rose-500 hover:bg-rose-50 border border-rose-200 px-4 py-2 rounded-xl font-bold">지원 취소</button>`}`;
     box.appendChild(div);
@@ -402,9 +419,12 @@ function renderStudentStatus() {
   if(box.innerHTML === "") box.innerHTML = `<div class="p-8 text-center text-gray-400 font-medium bg-gray-50 rounded-2xl border border-dashed">지원 내역이 없습니다.</div>`;
 }
 
+// 글로벌 지원 취소 로직 (버그 완벽 수정)
 window.cancelApplication = async (clubId) => {
-  if((await Swal.fire({ title: '취소할까요?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#e11d48', confirmButtonText: '취소하기' })).isConfirmed) {
-    await remove(ref(db, `applications/${clubId}/${state.currentStudent.id}`)); Toast.fire("지원 취소 완료", "", "info");
+  const res = await Swal.fire({ title: '지원을 취소할까요?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#e11d48', confirmButtonText: '취소하기', cancelButtonText: '닫기' });
+  if(res.isConfirmed) {
+    await remove(ref(db, `applications/${clubId}/${state.currentStudent.id}`)); 
+    Toast.fire("지원 취소 완료", "", "info");
   }
 };
 
@@ -412,15 +432,19 @@ function renderAllStudentsTable() {
   const tbody = document.getElementById('all-students-tbody'); tbody.innerHTML = "";
   const [fGrade, fClass, fName] = [document.getElementById('filter-grade').value, document.getElementById('filter-class').value, document.getElementById('filter-name').value.trim().toLowerCase()];
 
-  Object.values(state.studentsData).forEach(s => {
+  Object.entries(state.studentsData).forEach(([studentId, s]) => {
     if ((fGrade && String(s.grade) !== fGrade) || (fClass && String(s.classNum) !== fClass) || (fName && !s.name.toLowerCase().includes(fName))) return;
-    const myClubs = Object.entries(state.appsData).filter(([cid, apps]) => apps[Object.keys(state.studentsData).find(k => state.studentsData[k] === s)]);
     
     let reg = "-", aft1 = "-", aft2 = "-";
+    const myClubs = Object.entries(state.appsData).filter(([cid, apps]) => apps[studentId]);
+
     myClubs.forEach(([cid]) => {
       const c = state.clubsData[cid]; if(!c) return;
-      const t = `<span class="bg-gray-100 px-2 py-1 rounded text-xs font-bold border">${c.clubName}</span>`;
-      c.category.includes('방과 후 자율') ? (aft1 === "-" ? aft1 = t : aft2 = t) : reg = t;
+      const status = state.appsData[cid][studentId].status;
+      const icon = status === '합격' ? '🟢' : (status === '탈락' ? '🔴' : '🟡');
+      const t = `<span class="bg-gray-100 px-2 py-1 rounded text-xs font-bold border">${icon} ${c.clubName}</span>`;
+      if(c.category.includes('방과 후 자율')) { if (aft1 === "-") aft1 = t; else aft2 = t; } 
+      else { reg = t; }
     });
 
     const tr = document.createElement('tr'); tr.className = "hover:bg-indigo-50/40 border-b border-gray-100 text-sm";

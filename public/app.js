@@ -544,3 +544,62 @@ if(btnExcel) {
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
   });
 }
+// --- 동아리 삭제 기능 시작 ---
+const editSection = document.getElementById('admin-club-edit-section');
+
+if (editSection) {
+  // 1. 삭제 버튼을 동적으로 생성 (HTML 건드릴 필요 없음!)
+  const deleteBtn = document.createElement('button');
+  deleteBtn.id = "btn-delete-club";
+  deleteBtn.className = "bg-rose-500 hover:bg-rose-600 text-white px-5 py-3 rounded-xl font-black mt-6 w-full shadow-sm transition-all hidden";
+  deleteBtn.textContent = "🚨 이 동아리 영구 삭제하기 (전체 관리자 전용)";
+  
+  // 관리자 수정 섹션 맨 아래에 버튼 쏙 넣기
+  editSection.appendChild(deleteBtn);
+
+  // 2. 관리자가 동아리를 선택했을 때, '전체 관리자'인 경우에만 버튼 보이기
+  document.getElementById('admin-club-select').addEventListener('change', (e) => {
+    if (e.target.value && state.isSuperAdmin) {
+      deleteBtn.classList.remove('hidden');
+    } else {
+      deleteBtn.classList.add('hidden');
+    }
+  });
+
+  // 3. 삭제 버튼 클릭 시 작동할 로직
+  deleteBtn.addEventListener('click', async () => {
+    if (!state.isSuperAdmin) return showAlert("권한 오류", "전체 관리자만 삭제할 수 있습니다.", "error");
+    
+    const clubId = document.getElementById('admin-club-select').value;
+    if (!clubId) return;
+
+    // 강력한 경고창 띄우기
+    const res = await Swal.fire({
+      title: '정말 삭제할까요?',
+      text: "이 동아리와 학생들의 모든 지원 내역까지 영구 삭제됩니다! (복구 불가)",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#e11d48', // 빨간색 버튼
+      confirmButtonText: '네, 삭제합니다',
+      cancelButtonText: '취소'
+    });
+
+    if (res.isConfirmed) {
+      Swal.fire({ title: '삭제 처리 중...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      try {
+        // 파이어베이스에서 '동아리 정보' & '해당 동아리 학생 지원 내역' 동시 날리기
+        await remove(ref(db, `clubs/${clubId}`));
+        await remove(ref(db, `applications/${clubId}`));
+        
+        Swal.fire("삭제 완료!", "동아리가 흔적도 없이 삭제되었습니다.", "success");
+        
+        // 화면 초기화
+        document.getElementById('admin-club-select').value = "";
+        renderAdminList(); 
+      } catch(e) {
+        showAlert("삭제 실패", e.message, "error");
+      }
+    }
+  });
+}
+// --- 동아리 삭제 기능 끝 ---

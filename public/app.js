@@ -591,7 +591,7 @@ if (editSection) {
         await remove(ref(db, `clubs/${clubId}`));
         await remove(ref(db, `applications/${clubId}`));
         
-        Swal.fire("삭제 완료!", "동아리가 흔적도 없이 삭제되었습니다.", "success");
+        Swal.fire("삭제 완료!", "success");
         
         // 화면 초기화
         document.getElementById('admin-club-select').value = "";

@@ -3,6 +3,10 @@ import { getDatabase, ref, get, set, update, onValue, push, remove, query, order
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
+// 기존 파이어베이스 초기화 코드 아래에 작성하세요.
+const supabaseUrl = 'https://dzmsclhojumetrktazmb.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6bXNjbGhvanVtZXRya3Rhem1iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNTY4NTEsImV4cCI6MjA5NzgzMjg1MX0.Wbcs_t8p9Umzy2U4DAv1IpM5HxPqQZAFEgsq97xsM18';
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 const firebaseConfig = {
   apiKey: "AIzaSyA3n8Le_Z0QavlvrZnsaeGITbt40twBepE",
   authDomain: "getyourclub-7fb37.firebaseapp.com",
@@ -182,10 +186,28 @@ document.getElementById('btn-create-club').addEventListener('click', async () =>
 
   Swal.fire({ title: '신청서 제출 중...', didOpen: () => Swal.showLoading() });
   try {
-    const planRef = storageRef(storage, `plans/${Date.now()}_${planFile.name}`);
-    await uploadBytes(planRef, planFile);
-    const planUrl = await getDownloadURL(planRef);
+    let planUrl = "";
+    
+    // 수파베이스 Storage에 파일 업로드
+    if (planFile) {
+      const filePath = `${Date.now()}_${planFile.name}`;
+      const { data, error } = await supabase.storage
+        .from('plans')
+        .upload(filePath, planFile);
 
+      if (error) {
+        console.error("수파베이스 업로드 에러:", error);
+        return showAlert("업로드 실패", "파일 업로드 중 문제가 발생했습니다.", "error");
+      }
+
+      // 업로드 성공 후, 누구나 접근 가능한 공개 URL 가져오기
+      const { data: publicUrlData } = supabase.storage
+        .from('plans')
+        .getPublicUrl(filePath);
+      planUrl = publicUrlData.publicUrl;
+    }
+
+    // 데이터베이스(Firebase)에 저장하는 코드는 그대로 유지!
     await push(ref(db, 'club_applications'), {
       name: nameInput, 
       category: categoryInput, 
@@ -199,6 +221,16 @@ document.getElementById('btn-create-club').addEventListener('click', async () =>
     
     Swal.fire("신청 접수 완료", "관리자 승인 후 '내 동아리 관리'에서 소개글과 정보를 추가할 수 있습니다.", "success");
     
+    document.getElementById('create-club-name').value = ""; 
+    document.getElementById('create-club-teacher').value = ""; 
+    document.getElementById('create-club-file').value = "";
+  } catch (err) { 
+    console.error("개설 신청 에러:", err);
+    showAlert("오류 발생", "신청 중 문제가 발생했습니다. 새로고침 후 다시 시도해주세요.", "error"); 
+  }
+    
+    Swal.fire("신청 접수 완료", "관리자 승인 후 '내 동아리 관리'에서 소개글과 정보를 추가할 수 있습니다.", "success");
+    
     // 폼 초기화
     document.getElementById('create-club-name').value = ""; 
     document.getElementById('create-club-teacher').value = ""; 
@@ -207,7 +239,7 @@ document.getElementById('btn-create-club').addEventListener('click', async () =>
     console.error("개설 신청 에러:", err);
     showAlert("오류 발생", "신청 중 문제가 발생했습니다. 새로고침 후 다시 시도해주세요.", "error"); 
   }
-});
+  });
 // 관리자: 개설 승인 로직
 function renderPendingClubs() {
   const list = document.getElementById('pending-club-list'); list.innerHTML = "";

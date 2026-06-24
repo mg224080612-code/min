@@ -43,7 +43,8 @@ const state = {
 const SUPER_ADMINS = ['mg224080612@gvcs-mg.org', 'kyoungmin@gvcs-mg.org'];
 
 const Toast = Swal.mixin({ toast: true, position: 'top', showConfirmButton: false, timer: 3000, timerProgressBar: true });
-const showAlert = (title, text, icon = 'info') => Swal.fire({ title, text, icon, confirmButtonColor: '#4F46E5', borderRadius: '1.5rem' });
+// 🚨 수정됨: borderRadius 경고 제거
+const showAlert = (title, text, icon = 'info') => Swal.fire({ title, text, icon, confirmButtonColor: '#4F46E5' });
 
 // UI 이벤트 리스너 안전하게 바인딩
 const editPptInput = document.getElementById('edit-club-ppt');
@@ -179,8 +180,11 @@ document.getElementById('btn-create-club').addEventListener('click', async () =>
   try {
     let planUrl = "";
     
+    // 🚨 수정됨: 수파베이스 파일명 오류(한글/띄어쓰기) 완벽 해결
     if (planFile) {
-      const filePath = `${Date.now()}_${planFile.name}`;
+      const fileExtension = planFile.name.split('.').pop();
+      const filePath = `plan_${Date.now()}.${fileExtension}`;
+      
       const { data, error } = await supabase.storage
         .from('plans')
         .upload(filePath, planFile);
